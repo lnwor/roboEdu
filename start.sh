@@ -1,6 +1,5 @@
 #!/bin/sh
 
-
 retrieve_ip() {
 	jq -r ".resources[] | select(.name == \"myVps\") | .instances[].attributes.ipv4_address" $TFSTATE
 }
@@ -97,7 +96,7 @@ wait_and_record() {
 	start=$1; shift
 	end=$1; shift
 	teams=$1; shift
-	id=$1; shift
+	id=$(echo $1 | tr '_' '-'); shift
 	note=$1; shift
 	nome="$@"
 
@@ -118,8 +117,9 @@ wait_and_record() {
 	export ANSIBLE_HOST_KEY_CHECKING="False"
 		
 	seconds_till_start=$(printf '%s - (%s + 600)\n' `date -d $start '+%s'` `date '+%s'` | bc)
-	link_goodpart=$(echo $teams | grep -oE 'meeting_[^%]+')
-	link="https://teams.microsoft.com/_\#/pre-join-calling/19:${link_goodpart}@thread.v2"
+	link_goodpart=$(echo $teams | grep -oE 'meetup-join[^*]+')
+	link="https://teams.microsoft.com/_\#/l/${link_goodpart}"
+	# link=$teams
 	seconds_till_end=$(printf '(%s + 600)  - %s\n' `date -d $end '+%s'` `date '+%s'` | bc)
 
 	if test $seconds_till_end -lt 0; then
@@ -180,6 +180,7 @@ show_help() {
 	echo -d destroy
 	echo -l localhost
 	echo "-v verbose (keep logs)"
+	echo -M magistrale
 	echo "-f filter [id] //this is a positive filter, it will record just that corso" 
 	echo "-n filter [note] //this is a negative filter, it will skip selected note" 
 	echo "-m 'timeStart timeEnd URL ID' //this records manually from a teams meeting on the day it runs"
@@ -218,12 +219,13 @@ if test $# -lt 2; then
 	show_help
 fi
 
-while getopts ":h:d:l:v:m::f::n:" opt; do
+while getopts ":h:d:l:v:M:m::f::n:" opt; do # è fatto male ma non ho voglia di correggerlo
 	case $opt in
 		"h") show_help; exit;;
 		"d") echo "destroy" ; shift; DESTROY=true ;;
 		"l") echo "localhost" ; shift; LOCALHOST=true ;;
 		"v") echo "verbose" ; shift; VERBOSE=true ;;
+		"M") echo "magistrale"; shift; MAGISTRALE=true;;
 		"f") FILTER_CORSO=true; FILTER_CORSO_STRING=$OPTARG; shift; shift;;
 		"n") FILTER_NOTE=true; FILTER_NOTE_STRING=$OPTARG; shift; shift;;
 		"m") MANUAL=true; MANUAL_STRING=$OPTARG; shift; shift;;
@@ -243,6 +245,7 @@ test -n "$DESTROY" && destroy_all
 oggi=$(date '+%F')
 counter=0
 
+
 # manual recording
 test -n "$MANUAL" && manual $MANUAL_STRING
 
@@ -252,9 +255,14 @@ echo $$ > $ROOT/logs_and_pid/$NOME_CORSO-$ANNO.pid
 tmpdir=$(mktemp -d)
 exec 3> $tmpdir/fd3
 
-curl -s "https://corsi.unibo.it/laurea/$NOME_CORSO/orario-lezioni/@@orario_reale_json?anno=$ANNO&curricula=&start=$oggi&end=$oggi" | jq -r '.[] | .start + " " + .end + " " + .teams + " " + .cod_modulo + " _" + .note + "_ " + .title' > $tmpdir/fd3
+if test -n "$MAGISTRALE";then
+	curl -s "https://corsi.unibo.it/magistrale/$NOME_CORSO/orario-lezioni/@@orario_reale_json?anno=$ANNO&curricula=&start=$oggi&end=$oggi" | jq -r '.[] | .start + " " + .end + " " + .teams + " " + .cod_modulo + " _" + .note + "_ " + .title' > $tmpdir/fd3
+else
+	curl -s "https://corsi.unibo.it/laurea/$NOME_CORSO/orario-lezioni/@@orario_reale_json?anno=$ANNO&curricula=&start=$oggi&end=$oggi" | jq -r '.[] | .start + " " + .end + " " + .teams + " " + .cod_modulo + " _" + .note + "_ " + .title' > $tmpdir/fd3
+fi
+
 while read line; do
-	ID=$(echo $line | cut -d' ' -f4) # sucky hack
+	ID=$(echo $line | cut -d' ' -f4)
 	counter=$(($counter + 1))
 	wait_and_record $counter $line > $ROOT/logs_and_pid/$NOME_CORSO-${ANNO}_${ID}_$(date '+%y%m%d')_$counter.log 2>&1 &
 	echo $! > $ROOT/logs_and_pid/$NOME_CORSO-$ANNO-$counter.pid

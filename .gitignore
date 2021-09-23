@@ -13,3 +13,7 @@ ansible/playbook-exp.yml
 start-exp.sh
 ansible/stuff/record-exp.sh
 rotate_logs.sh
+logs_and_pid_ss2021.tar.gz
+start_azure.sh
+terraform/azure/
+terraform/hetzner/

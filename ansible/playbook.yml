@@ -3,6 +3,11 @@
   vars_files:
     - ../secrets/unibo_login.yml
   tasks:
+    - name: change mirrors
+      template:
+        src: stuff/sources.list.debian.j2
+        dest: /etc/apt/sources.list
+
     # https://github.com/ansible/ansible-modules-core/issues/2951#issuecomment-191892885
     # absolute state of ansible
     - name: update
