@@ -101,7 +101,7 @@ wait_and_record() {
 	nome="$@"
 
 	if test -n "$FILTER_CORSO" && ! (echo "$FILTER_CORSO_STRING" | grep $id > /dev/null); then
-		logd skipped corso $id - not corso $FILTER_CORSO_STRING
+		logd skipped corso $id - corso not in $FILTER_CORSO_STRING
 		exit
 	fi
 	if test -n "$FILTER_NOTE" -a $note = "_${FILTER_NOTE_STRING}_"; then
