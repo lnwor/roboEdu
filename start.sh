@@ -194,6 +194,7 @@ manual(){
 	timeEnd=$2
 	url=$3
 	ID=$4
+	echo $counter - $timeStart $timeEnd $url $ID $NOME_CORSO $ANNO
 	wait_and_record $counter ${oggi}T$1 ${oggi}T$2 $3 $4 __ $NOME_CORSO $ANNO > $ROOT/logs_and_pid/$NOME_CORSO-${ANNO}_${ID}_$(date '+%y%m%d')_$counter.log 2>&1 &
 	echo $! > $ROOT/logs_and_pid/$NOME_CORSO-$ANNO-$counter.pid
 	set +e
@@ -219,18 +220,21 @@ if test $# -lt 2; then
 	show_help
 fi
 
-while getopts ":h:d:l:v:M:m::f::n:" opt; do # è fatto male ma non ho voglia di correggerlo
+TIPO="laurea"
+
+while getopts ":hdlvMm:f:n:" opt; do
 	case $opt in
 		"h") show_help; exit;;
-		"d") echo "destroy" ; shift; DESTROY=true ;;
-		"l") echo "localhost" ; shift; LOCALHOST=true ;;
-		"v") echo "verbose" ; shift; VERBOSE=true ;;
-		"M") echo "magistrale"; shift; MAGISTRALE=true;;
-		"f") FILTER_CORSO=true; FILTER_CORSO_STRING=$OPTARG; shift; shift;;
-		"n") FILTER_NOTE=true; FILTER_NOTE_STRING=$OPTARG; shift; shift;;
-		"m") MANUAL=true; MANUAL_STRING=$OPTARG; shift; shift;;
+		"d") echo "destroy" ; DESTROY=true;;
+		"l") echo "localhost" ; LOCALHOST=true;;
+		"v") echo "verbose" ; VERBOSE=true;;
+		"M") echo "magistrale"; TIPO="magistrale";;
+		"f") echo "filtro corsi: $OPTARG"; FILTER_CORSO=true; FILTER_CORSO_STRING=$OPTARG;;
+		"n") echo "filtro note: $OPTARG";FILTER_NOTE=true; FILTER_NOTE_STRING=$OPTARG;;
+		"m") echo "manuale"; MANUAL=true; MANUAL_STRING=$OPTARG;; 
 	esac
 done
+shift $(($OPTIND - 1))
 
 NOME_CORSO=$1
 ANNO=$2
@@ -255,11 +259,7 @@ echo $$ > $ROOT/logs_and_pid/$NOME_CORSO-$ANNO.pid
 tmpdir=$(mktemp -d)
 exec 3> $tmpdir/fd3
 
-if test -n "$MAGISTRALE";then
-	curl -s "https://corsi.unibo.it/magistrale/$NOME_CORSO/orario-lezioni/@@orario_reale_json?anno=$ANNO&curricula=&start=$oggi&end=$oggi" | jq -r '.[] | .start + " " + .end + " " + .teams + " " + .cod_modulo + " _" + .note + "_ " + .title' > $tmpdir/fd3
-else
-	curl -s "https://corsi.unibo.it/laurea/$NOME_CORSO/orario-lezioni/@@orario_reale_json?anno=$ANNO&curricula=&start=$oggi&end=$oggi" | jq -r '.[] | .start + " " + .end + " " + .teams + " " + .cod_modulo + " _" + .note + "_ " + .title' > $tmpdir/fd3
-fi
+curl -s "https://corsi.unibo.it/$TIPO/$NOME_CORSO/orario-lezioni/@@orario_reale_json?anno=$ANNO&curricula=&start=$oggi&end=$oggi" | jq -r '.[] | .start + " " + .end + " " + .teams + " " + .cod_modulo + " _" + .note + "_ " + .title' > $tmpdir/fd3
 
 while read line; do
 	ID=$(echo $line | cut -d' ' -f4)
