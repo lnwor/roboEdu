@@ -74,7 +74,7 @@ record_start() {
 	wait_machines
 
 	ssh-keygen -R `retrieve_ip`
-	ansible-playbook -i $INVENTORY ${ROOT}/ansible/playbook.yml --extra-vars "link=$link script=$PUPSCRIPT"
+	ansible-playbook -i $INVENTORY ${ROOT}/ansible/playbook.yml --extra-vars "link=$link pupscript=$PUPSCRIPT"
 }
 
 record_stop() {

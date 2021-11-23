@@ -58,7 +58,7 @@
     - name: copy pup script
       template:
         dest: /home/yolo/pup/teams.js
-        src: ./templates/teams.js
+        src: ./scripts/teams.js
         owner: yolo
         group: yolo
         mode: '0666'
@@ -72,4 +72,4 @@
         recurse: true
     - name: execute recording script
       script:
-        cmd: ../ansible/templates/record.sh {{ script }}
+        cmd: ../ansible/scripts/record.sh {{ pupscript }}
