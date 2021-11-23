@@ -44,7 +44,6 @@ screenshot() {
 	id=$2
 	end=$3
 	tempo=$(printf '(%s - 300)  - %s\n' `date -d $end '+%s'` `date '+%s'` | bc) # no screenshots in the last 15 minutes
-    mkdir -p $ROOT/screencaps
 	while test $tempo -gt 0; do
 		ssh -i $PRIV_KEY -o StrictHostKeyChecking=no root@`retrieve_ip` 'DISPLAY=:99 import -window root /root/yolo.png'
 		scp -i $PRIV_KEY -o StrictHostKeyChecking=no root@`retrieve_ip`:/root/yolo.png "$ROOT/screencaps/$NOME_CORSO-$ANNO-$id-$counter.png"
@@ -84,7 +83,6 @@ record_stop() {
 	ssh -i $PRIV_KEY root@`retrieve_ip` 'killall -INT ffmpeg'
 	sleep 10s #in case ffmpeg needed this
 	logd Lezione finita, inizio a scaricarla
-    mkdir -p $ROOT/regs
 	scp -i $PRIV_KEY -o StrictHostKeyChecking=no root@`retrieve_ip`:/home/yolo/reg.mkv "$ROOT/regs/$NOME_CORSO-$ANNO-${id}_$(date '+%y%m%d')_$counter.mkv"
 	logd Lezione scaricata 
 	cd terraform
@@ -117,9 +115,6 @@ wait_and_record() {
 	INVENTORY="${ROOT}/ansible/inventory/$NOME_CORSO-$ANNO-$id-$counter.ini"
 	TFSTATE="${ROOT}/terraform/states/$NOME_CORSO-$ANNO-$id-$counter.tfstate"
 	export ANSIBLE_HOST_KEY_CHECKING="False"
-    mkdir -p $ROOT/terraform/states/
-    mkdir -p $ROOT/ansible/inventory/
-    mkdir -p $ROOT/secrets/ssh/
 		
 	seconds_till_start=$(printf '%s - (%s + 600)\n' `date -d $start '+%s'` `date '+%s'` | bc)
 	link_goodpart=$(echo $teams | grep -oE 'meetup-join[^*]+')
@@ -246,8 +241,6 @@ ROOT=$(pwd)
 PUPSCRIPT="teams"
 
 test -n "$DESTROY" && destroy_all
-
-mkdir -p $ROOT/logs_and_pid
 
 # get piano for today
 oggi=$(date '+%F')

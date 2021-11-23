@@ -1,6 +1,7 @@
 .*
 !/.gitignore
 secrets/*
+!secrets/ssh/
 regs/*
 ansible/inventory/*
 logs_and_pid/*
