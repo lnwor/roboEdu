@@ -41,7 +41,7 @@
         groups: [audio,sudo,voice,users,staff]
         uid: 1666
         append: true
-    - name: crea cartella puppeteer
+    - name: create puppeteer directory
       file:
         path: /home/yolo/pup
         state: directory
@@ -62,7 +62,7 @@
         owner: yolo
         group: yolo
         mode: '0666'
-    - name: cambia permessi xdg_runtime
+    - name: change xdg_runtime permissions
       file:
         path: /run/user/0
         state: directory
