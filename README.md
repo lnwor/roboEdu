@@ -25,8 +25,10 @@ nella cartella `regs/`.
 
 ## Dipendenze
 - OpenSSH
-- Terraform
-- Ansible
+- jq
+- terraform
+- ansible >= 2.8.0 (versioni precedenti potrebbero non riconoscere
+correttamente la versione di Python usata)
 
 ## Come far partire le registrazioni
 - crea `secrets/unibo_login.yml` con variabili `username`, `password`, ad
