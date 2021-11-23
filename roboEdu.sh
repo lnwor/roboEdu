@@ -237,7 +237,8 @@ shift $(($OPTIND - 1))
 
 NOME_CORSO=$1
 ANNO=$2
-ROOT=$(pwd)
+STARTSCRIPT=$(realpath $0)
+ROOT=$(dirname $STARTSCRIPT)
 PUPSCRIPT="teams"
 
 test -n "$DESTROY" && destroy_all
