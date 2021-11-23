@@ -73,7 +73,7 @@ record_start() {
 	wait_machines
 
 	ssh-keygen -R `retrieve_ip`
-	ansible-playbook -i $INVENTORY ${ROOT}/ansible/playbook.yml --extra-vars "link=$link test=$PUPTEST"
+	ansible-playbook -i $INVENTORY ${ROOT}/ansible/playbook.yml --extra-vars "link=$link script=$PUPSCRIPT"
 }
 
 record_stop() {
@@ -239,7 +239,7 @@ shift $(($OPTIND - 1))
 NOME_CORSO=$1
 ANNO=$2
 ROOT=$(pwd)
-PUPTEST="teamsTest"
+PUPSCRIPT="teams"
 
 test -n "$DESTROY" && destroy_all
 
