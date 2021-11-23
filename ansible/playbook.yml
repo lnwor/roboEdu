@@ -11,7 +11,7 @@
     # https://github.com/ansible/ansible-modules-core/issues/2951#issuecomment-191892885
     # absolute state of ansible
     - name: update
-      shell: apt-get update
+      shell: apt-get -y update
       args:
         warn: false
     - name: install required packages
@@ -72,4 +72,4 @@
         recurse: true
     - name: execute recording script
       script:
-        cmd: ../ansible/scripts/record.sh {{ pupscript }}
+        cmd: ./scripts/record.sh {{ pupscript }}
