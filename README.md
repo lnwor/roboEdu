@@ -13,13 +13,15 @@ trasferendo gli script necessari, dopodiché viene fatta partire la registrazion
 vera e propria.\
 Per unirsi alla lezione viene automatizzato il browser Chromium
 con Puppeteer, utilizzando le credenziali fornite in `secrets/unibo_login.yml`
-per accedere.\
+per accedere e vengono catturati degli screenshot ogni minuto per controllare
+che la registrazione prosegua correttamente e vengono trasferiti in
+`screencaps/`.\
 Le registrazioni vengono codificate con H.265 per ottimizzare lo
 spazio occupato, questo significa che sarà necessario utilizzare dei media
 player che supportano questo formato, quali [VLC](https://www.videolan.org/vlc/)
 o [MPV](https://github.com/mpv-player/mpv).\
 Una volta terminata la lezione, dopo 10 minuti viene scaricata la registrazione
-nella cartella `regs/`
+nella cartella `regs/`.
 
 ## Dipendenze
 - OpenSSH
