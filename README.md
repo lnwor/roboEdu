@@ -2,7 +2,7 @@
 
 ## Come funziona?
 
-Le registrazioni partono dallo script `start.sh`, che recupera gli orari
+Le registrazioni partono dallo script `roboEdu.sh`, che recupera gli orari
 delle lezioni dall'endpoint pubblico di [unibo.it](https://unibo.it) e assegna
 ad ogni lezione selezionata un sottoprocesso, che aspetta l'inizio della
 lezione, fa partire la registrazione e la ferma. Quando mancano 10 minuti
@@ -36,5 +36,5 @@ username: "nome.cognome@studio.unibo.it"
 password: "la_mia_password"
 ```
 - crea `secrets/hcloud_key` contenente **solo** il token per le API di Hetzner
-- lancia lo script con `./start.sh <nome_corso> <anno>`, oppure lancia
-`./start.sh -h` per ottenere le opzioni disponibili
+- lancia lo script con `./roboEdu.sh <nome_corso> <anno>`, oppure lancia
+`./roboEdu.sh -h` per ottenere le opzioni disponibili
