@@ -1,28 +1,28 @@
 variable "corso" {
   type = string
-  description = "stringa corrispondente al corso"
+  description = "nome del corso di studi"
 }
 
 variable "anno" {
   type = string
-  description = "stringa corrispondente all'anno"
+  description = "anno del corso di studi"
 }
 
 variable "id" {
   type = string
-  description = "id univoco della macchina"
+  description = "id univoco della lezione"
 }
 
 variable "counter" {
   type = string
-  description = "id univoco della macchina"
+  description = "contatore relativo alla lezione"
 }
 
 locals {
-	nomeRoba = join("-", [var.corso, var.anno, var.id, var.counter])
-	nomeKey = join("-", [local.nomeRoba, "key"])
-	pathKey = join("", ["../secrets/ssh/", local.nomeKey])
-	nomeVps = join("-", [local.nomeRoba, "client"])
+	varNames = join("-", [var.corso, var.anno, var.id, var.counter])
+	keyName = join("-", [local.varNames, "key"])
+	pathKey = join("", ["../secrets/ssh/", local.keyName])
+	vpsName = join("-", [local.varNames, "client"])
 }
 
 terraform {
@@ -41,12 +41,12 @@ provider "hcloud" {
 
 #  Main ssh key
 resource "hcloud_ssh_key"  "myKey" {
-  name       = local.nomeKey
+  name       = local.keyName
   public_key = file(join("", [local.pathKey, ".pub"]))
 }
 
 resource "hcloud_server" "myVps" {
-  name        = local.nomeVps
+  name        = local.vpsName
   image       = "ubuntu-20.04"
   server_type = "cpx11"
   ssh_keys    = ["${hcloud_ssh_key.myKey.name}"]
