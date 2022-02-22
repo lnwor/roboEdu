@@ -19,13 +19,14 @@ che la registrazione prosegua correttamente e vengono trasferiti in
 `screencaps/`.\
 Le registrazioni vengono codificate con H.265 per ottimizzare lo
 spazio occupato, questo significa che sarà necessario utilizzare dei media
-player che supportano questo formato, quali [VLC](https://www.videolan.org/vlc/)
+player che supportano questo formato, come [VLC](https://www.videolan.org/vlc/)
 o [MPV](https://github.com/mpv-player/mpv).\
 Una volta terminata la lezione, dopo 10 minuti viene scaricata la registrazione
 nella cartella `regs/`.
 
 ## Dipendenze
 - OpenSSH
+- curl
 - jq
 - terraform
 - ansible >= 2.8.0 (versioni precedenti potrebbero non riconoscere
