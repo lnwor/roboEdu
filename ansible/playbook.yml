@@ -38,7 +38,7 @@
       user:
         name: yolo
         shell: /bin/bash
-        groups: [audio,sudo,voice,users,staff]
+        groups: [audio, sudo, voice, users, staff]
         uid: 1666
         append: true
     - name: create puppeteer directory
@@ -73,3 +73,4 @@
     - name: execute recording script
       script:
         cmd: ./scripts/record.sh {{ pupscript }}
+        creates: /root/started
