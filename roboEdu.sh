@@ -221,7 +221,7 @@ fi
 
 TIPO_CORSO="laurea"
 
-while getopts ":hdlvMm:f:n:" opt; do
+while getopts ":hdlvMm:f:n:c:" opt; do
 	case $opt in
 		"h") show_help; exit;;
 		"d") echo "distruggi tutto" ; DESTROY=true;;
@@ -231,6 +231,7 @@ while getopts ":hdlvMm:f:n:" opt; do
 		"f") echo "filtro corsi: $OPTARG"; FILTER_CORSO=true; FILTER_CORSO_STRING=$OPTARG;;
 		"n") echo "filtro note: $OPTARG";FILTER_NOTE=true; FILTER_NOTE_STRING=$OPTARG;;
 		"m") echo "manuale"; MANUAL=true; MANUAL_STRING=$OPTARG;; 
+		"c") echo "curriculum"; CURRICULA=$OPTARG;; 
 	esac
 done
 shift $(($OPTIND - 1))
@@ -257,7 +258,7 @@ echo $$ > $ROOT/logs_and_pid/$NOME_CORSO-$ANNO.pid
 tmpdir=$(mktemp -d)
 exec 3> $tmpdir/fd3
 
-curl -s "https://corsi.unibo.it/$TIPO_CORSO/$NOME_CORSO/orario-lezioni/@@orario_reale_json?anno=$ANNO&curricula=&start=$oggi&end=$oggi" | jq -r '.[] | .start + " " + .end + " " + .teams + " " + .cod_modulo + " _" + .note + "_ " + .title' > $tmpdir/fd3
+curl -s "https://corsi.unibo.it/$TIPO_CORSO/$NOME_CORSO/orario-lezioni/@@orario_reale_json?anno=$ANNO&curricula=$CURRICULA&start=$oggi&end=$oggi" | jq -r '.[] | .start + " " + .end + " " + .teams + " " + .cod_modulo + " _" + .note + "_ " + .title' > $tmpdir/fd3
 
 while read line; do
 	ID=$(echo $line | cut -d' ' -f4)
