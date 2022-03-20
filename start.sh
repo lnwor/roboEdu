@@ -92,19 +92,19 @@ record_stop() {
 
 wait_and_record() {
 	#parse string
-	counter=$1; shift
-	start=$1; shift
-	end=$1; shift
-	teams=$1; shift
-	id=$(echo $1 | tr '_' '-'); shift
-	note=$1; shift
-	nome="$@"
+	counter=$(echo $1 | sed 's/_(.*)_/\1/'); shift
+	start=$(echo $1 | sed 's/_(.*)_/\1/'); shift
+	end=$(echo $1 | sed 's/_(.*)_/\1/'); shift
+	teams=$(echo $1 | sed 's/_(.*)_/\1/'); shift
+	id=$(echo $1 | sed 's/_(.*)_/\1/' | tr '_' '-'); shift
+	note=$(echo $1 | sed 's/_(.*)_/\1/'); shift
+	nome=$(echo $@ | sed 's/_(.*)_/\1/'); shift
 
 	if test -n "$FILTER_CORSO" && ! (echo "$FILTER_CORSO_STRING" | grep $id > /dev/null); then
 		logd skipped corso $id - corso not in $FILTER_CORSO_STRING
 		exit
 	fi
-	if test -n "$FILTER_NOTE" -a $note = "_${FILTER_NOTE_STRING}_"; then
+	if test -n "$FILTER_NOTE" -a $note = "${FILTER_NOTE_STRING}"; then
 		logd skipped note $FILTER_NOTE_STRING
 		exit
 	fi
@@ -152,8 +152,8 @@ destroy_all() {
 	#get piano for today
 	oggi=$(date '+%Y-%m-%d')
 	counter=0
-	kill -TERM -$(cat $ROOT/logs_and_pid/$NOME_CORSO-$ANNO.pid)
-	rm $ROOT/logs_and_pid/$NOME_CORSO-$ANNO.pid
+	kill -TERM -$(cat $PIDFILE)
+	rm $PIDFILE
 	curl -s "https://corsi.unibo.it/laurea/$NOME_CORSO/orario-lezioni/@@orario_reale_json?anno=$ANNO&curricula=&start=$oggi&end=$oggi" | jq -r '.[] | .cod_modulo' |\
 		while read line; do
 			counter=$(($counter + 1))
@@ -168,7 +168,7 @@ destroy_all() {
 			INVENTORY="${ROOT}/ansible/inventory/$NOME_CORSO-$ANNO-$id.ini"
 			rm $PRIV_KEY $INVENTORY
 			rm $ROOT/logs_and_pid/$NOME_CORSO-${ANNO}_${id}_$(date '+%y%m%d')_$counter.log
-			rm $ROOT/logs_and_pid/$NOME_CORSO-$ANNO-$counter.pid
+			rm $PIDFILE
 		done 
 		exit
 
@@ -196,17 +196,17 @@ manual(){
 	ID=$4
 	echo $counter - $timeStart $timeEnd $url $ID $NOME_CORSO $ANNO
 	wait_and_record $counter ${oggi}T$1 ${oggi}T$2 $3 $4 __ $NOME_CORSO $ANNO > $ROOT/logs_and_pid/$NOME_CORSO-${ANNO}_${ID}_$(date '+%y%m%d')_$counter.log 2>&1 &
-	echo $! > $ROOT/logs_and_pid/$NOME_CORSO-$ANNO-$counter.pid
+	echo $! > $PIDFILE
 	set +e
-	wait $(cat $ROOT/logs_and_pid/$NOME_CORSO-$ANNO-$counter.pid)
+	wait $(cat $PIDFILE)
 	set -e
 	echo $NOME_CORSO-$ANNO-$counter ha finito
 	test -z VERBOSE && rm $ROOT/logs_and_pid/${NOME_CORSO}-${ANNO}_*_$(date '+%y%m%d')_${counter}.log
-	rm $ROOT/logs_and_pid/$NOME_CORSO-$ANNO-$counter.pid
+	rm $PIDFILE
 	set +e
 	rm -f $ROOT/screencaps/$NOME_CORSO-$ANNO-*-$counter.png
 	set -e
-	rm $ROOT/logs_and_pid/$NOME_CORSO-$ANNO.pid
+	rm $PIDFILE
 	exit
 }
 
@@ -222,7 +222,7 @@ fi
 
 TIPO="laurea"
 
-while getopts ":hdlvMm:f:n:" opt; do
+while getopts ":hdlvMm:f:n:c:" opt; do
 	case $opt in
 		"h") show_help; exit;;
 		"d") echo "destroy" ; DESTROY=true;;
@@ -232,9 +232,10 @@ while getopts ":hdlvMm:f:n:" opt; do
 		"f") echo "filtro corsi: $OPTARG"; FILTER_CORSO=true; FILTER_CORSO_STRING=$OPTARG;;
 		"n") echo "filtro note: $OPTARG";FILTER_NOTE=true; FILTER_NOTE_STRING=$OPTARG;;
 		"m") echo "manuale"; MANUAL=true; MANUAL_STRING=$OPTARG;; 
+		"c") echo "curricula"; CURRICULA=$OPTARG;;
 	esac
+	shift $(($OPTIND - 1))
 done
-shift $(($OPTIND - 1))
 
 NOME_CORSO=$1
 ANNO=$2
@@ -253,33 +254,35 @@ counter=0
 # manual recording
 test -n "$MANUAL" && manual $MANUAL_STRING
 
-echo $$ > $ROOT/logs_and_pid/$NOME_CORSO-$ANNO.pid
+echo $$ > $ROOT/logs_and_pid/$NOME_CORSO-$ANNO-$TIPO.pid
 
 # no process substitution in P0SIX sh
 tmpdir=$(mktemp -d)
 exec 3> $tmpdir/fd3
 
-curl -s "https://corsi.unibo.it/$TIPO/$NOME_CORSO/orario-lezioni/@@orario_reale_json?anno=$ANNO&curricula=&start=$oggi&end=$oggi" | jq -r '.[] | .start + " " + .end + " " + .teams + " " + .cod_modulo + " _" + .note + "_ " + .title' > $tmpdir/fd3
+curl -s "https://corsi.unibo.it/$TIPO/$NOME_CORSO/orario-lezioni/@@orario_reale_json?anno=$ANNO&curricula=$CURRICULA&start=$oggi&end=$oggi" | jq -r '.[] | "_" + .start + "_ _" + .end + "_ _" + .teams + "_ _" + .cod_modulo + "_ _" + .note + "_ _" + .title + "_"' > $tmpdir/fd3
+
+PIDFILE="$ROOT/logs_and_pid/$NOME_CORSO-$ANNO-$TIPO-$counter.pid"
 
 while read line; do
 	ID=$(echo $line | cut -d' ' -f4)
 	counter=$(($counter + 1))
 	wait_and_record $counter $line > $ROOT/logs_and_pid/$NOME_CORSO-${ANNO}_${ID}_$(date '+%y%m%d')_$counter.log 2>&1 &
-	echo $! > $ROOT/logs_and_pid/$NOME_CORSO-$ANNO-$counter.pid
+	echo $! > $PIDFILE
 done < $tmpdir/fd3
 
 rm -r $tmpdir
 
 while test $counter -gt 0; do
 	set +e
-	wait $(cat $ROOT/logs_and_pid/$NOME_CORSO-$ANNO-$counter.pid)
+	wait $(cat $PIDFILE)
 	set -e
 	echo $NOME_CORSO-$ANNO-$counter ha finito
 	test -z VERBOSE && rm $ROOT/logs_and_pid/$NOME_CORSO-${ANNO}_*_$(date '+%y%m%d')_$counter.log
-	rm $ROOT/logs_and_pid/$NOME_CORSO-$ANNO-$counter.pid
+	rm $PIDFILE
 	set +e
 	rm -f $ROOT/screencaps/$NOME_CORSO-$ANNO-*-$counter.png
 	set -e
 	counter=$(($counter - 1))
 done
-rm $ROOT/logs_and_pid/$NOME_CORSO-$ANNO.pid
+rm $ROOT/logs_and_pid/$NOME_CORSO-$ANNO-$TIPO.pid
