@@ -1,9 +1,8 @@
 .*
 !/.gitignore
 secrets/*
+!secrets/ssh/
 regs/*
-puppeteer/package-lock.json
-puppeteer/node_modules/*
 ansible/inventory/*
 logs_and_pid/*
 screencaps/*

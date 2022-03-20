@@ -43,7 +43,7 @@ screenshot() {
 	counter=$1
 	id=$2
 	end=$3
-	tempo=$(printf '(%s - 300)  - %s\n' `date -d $end '+%s'` `date '+%s'` | bc) # no screenshot gli ultimi 15 minuti
+	tempo=$(printf '(%s - 300)  - %s\n' `date -d $end '+%s'` `date '+%s'` | bc) # no screenshots in the last 15 minutes
 	while test $tempo -gt 0; do
 		ssh -i $PRIV_KEY -o StrictHostKeyChecking=no root@`retrieve_ip` 'DISPLAY=:99 import -window root /root/yolo.png'
 		scp -i $PRIV_KEY -o StrictHostKeyChecking=no root@`retrieve_ip`:/root/yolo.png "$ROOT/screencaps/$NOME_CORSO-$ANNO-$id-$counter.png"
@@ -63,7 +63,7 @@ record_start() {
 	echo 'n' | ssh-keygen -N "" -q -f $PRIV_KEY
 	set -e
 	
-	# make terraform do stuff
+    # create server with terraform
 	cd ./terraform
 	terraform init
 	terraform apply -var="anno=$ANNO" -var="corso=$NOME_CORSO" -var="id=$id" -var="counter=$counter" -state $TFSTATE -auto-approve
@@ -73,7 +73,7 @@ record_start() {
 	wait_machines
 
 	ssh-keygen -R `retrieve_ip`
-	ansible-playbook -i $INVENTORY ${ROOT}/ansible/playbook.yml --extra-vars "link=$link test=$PUPTEST"
+	ansible-playbook -i $INVENTORY ${ROOT}/ansible/playbook.yml --extra-vars "link=$link pupscript=$PUPSCRIPT"
 }
 
 record_stop() {
@@ -109,7 +109,7 @@ wait_and_record() {
 		exit
 	fi
 
-	#make variables
+	# make variables
 	PRIV_KEY=${ROOT}/secrets/ssh/$NOME_CORSO-$ANNO-$id-$counter-key
 	NOME_MACCHINA=$NOME_CORSO-$ANNO-$id-$counter-client
 	INVENTORY="${ROOT}/ansible/inventory/$NOME_CORSO-$ANNO-$id-$counter.ini"
@@ -119,7 +119,6 @@ wait_and_record() {
 	seconds_till_start=$(printf '%s - (%s + 600)\n' `date -d $start '+%s'` `date '+%s'` | bc)
 	link_goodpart=$(echo $teams | grep -oE 'meetup-join[^*]+')
 	link="https://teams.microsoft.com/_\#/l/${link_goodpart}"
-	# link=$teams
 	seconds_till_end=$(printf '(%s + 600)  - %s\n' `date -d $end '+%s'` `date '+%s'` | bc)
 
 	if test $seconds_till_end -lt 0; then
@@ -143,13 +142,13 @@ wait_and_record() {
 
 	logd tutto finito
 	
-	#remove created files:
+	# remove created files:
 	rm $PRIV_KEY $INVENTORY $TFSTATE
 }
 
 destroy_all() {
 	set +e
-	#get piano for today
+	# get piano for today
 	oggi=$(date '+%Y-%m-%d')
 	counter=0
 	kill -TERM -$(cat $PIDFILE)
@@ -175,15 +174,15 @@ destroy_all() {
 }
 
 show_help() {
-	echo "Usage: $0 [-d] <nomecorso> <anno> [id]"
-	echo -h help
-	echo -d destroy
-	echo -l localhost
-	echo "-v verbose (keep logs)"
-	echo -M magistrale
-	echo "-f filter [id] //this is a positive filter, it will record just that corso" 
-	echo "-n filter [note] //this is a negative filter, it will skip selected note" 
-	echo "-m 'timeStart timeEnd URL ID' //this records manually from a teams meeting on the day it runs"
+	echo "Utilizzo: $0 [-d] <nomecorso> <anno> [id]"
+	echo "-h help"
+	echo "-d distruggi tutti i server esistenti"
+	echo "-l localhost"
+	echo "-v verboso (mantieni i log)"
+	echo "-M magistrale"
+    echo "-f filtro [id] // questo è un filtro positivo, registrerà solamente le lezioni con questo id" 
+    echo "-n filtro [nota] // questo è un filtro negativo, salterà le lezioni con la nota specificata" 
+	echo "-m 'orarioInizio orarioFine URL ID' // registra manualmente da un meeting teams del giorno corrente"
 	exit
 }
 
@@ -220,33 +219,32 @@ if test $# -lt 2; then
 	show_help
 fi
 
-TIPO="laurea"
+TIPO_CORSO="laurea"
 
 while getopts ":hdlvMm:f:n:c:" opt; do
 	case $opt in
 		"h") show_help; exit;;
-		"d") echo "destroy" ; DESTROY=true;;
+		"d") echo "distruggi tutto" ; DESTROY=true;;
 		"l") echo "localhost" ; LOCALHOST=true;;
-		"v") echo "verbose" ; VERBOSE=true;;
-		"M") echo "magistrale"; TIPO="magistrale";;
+		"v") echo "verboso" ; VERBOSE=true;;
+		"M") echo "magistrale"; TIPO_CORSO="magistrale";;
 		"f") echo "filtro corsi: $OPTARG"; FILTER_CORSO=true; FILTER_CORSO_STRING=$OPTARG;;
 		"n") echo "filtro note: $OPTARG";FILTER_NOTE=true; FILTER_NOTE_STRING=$OPTARG;;
 		"m") echo "manuale"; MANUAL=true; MANUAL_STRING=$OPTARG;; 
 		"c") echo "curricula"; CURRICULA=$OPTARG;;
 	esac
-	shift $(($OPTIND - 1))
 done
+shift $(($OPTIND - 1))
 
 NOME_CORSO=$1
 ANNO=$2
-ROOT=$(pwd)
-PUPTEST="teamsTest"
+STARTSCRIPT=$(realpath $0)
+ROOT=$(dirname $STARTSCRIPT)
+PUPSCRIPT="teams"
 
 test -n "$DESTROY" && destroy_all
 
-#check if pid alredy exists
-
-#get piano for today
+# get piano for today
 oggi=$(date '+%F')
 counter=0
 

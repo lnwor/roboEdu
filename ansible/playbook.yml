@@ -5,16 +5,16 @@
   tasks:
     - name: change mirrors
       template:
-        src: stuff/sources.list.debian.j2
+        src: templates/sources.list.debian
         dest: /etc/apt/sources.list
 
     # https://github.com/ansible/ansible-modules-core/issues/2951#issuecomment-191892885
     # absolute state of ansible
     - name: update
-      shell: apt-get update
+      shell: apt-get -y update
       args:
         warn: false
-    - name: install stuff
+    - name: install required packages
       apt:
         pkg:
           # - dbus-x11
@@ -38,10 +38,10 @@
       user:
         name: yolo
         shell: /bin/bash
-        groups: audio,sudo,voice,users,staff
+        groups: [audio,sudo,voice,users,staff]
         uid: 1666
         append: true
-    - name: crea cartella puppeteer
+    - name: create puppeteer directory
       file:
         path: /home/yolo/pup
         state: directory
@@ -55,21 +55,14 @@
         path: /home/yolo/pup
       become: true
       become_user: yolo
-    - name: copy pup test script
-      copy:
-        dest: /home/yolo/pup/ytTest.js
-        src: ../puppeteer/ytTest.js
-        owner: yolo
-        group: yolo
-        mode: '0666'
     - name: copy pup script
       template:
-        dest: /home/yolo/pup/teamsTest.js
-        src: ../puppeteer/teamsTest.js.j2
+        dest: /home/yolo/pup/teams.js
+        src: ./scripts/teams.js
         owner: yolo
         group: yolo
         mode: '0666'
-    - name: cambia permessi xdg_runtime
+    - name: change xdg_runtime permissions
       file:
         path: /run/user/0
         state: directory
@@ -79,5 +72,5 @@
         recurse: true
     - name: execute recording script
       script:
-        cmd: ../ansible/stuff/record.sh {{ test }}
+        cmd: ./scripts/record.sh {{ pupscript }}
         creates: /root/started
