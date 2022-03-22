@@ -7,14 +7,3 @@ ansible/inventory/*
 logs_and_pid/*
 screencaps/*
 terraform/states/*
-tmux_starter.sh
-ansible/playbook-exp.yml
-start-exp.sh
-ansible/stuff/record-exp.sh
-rotate_logs.sh
-logs_and_pid_ss2021.tar.gz
-start_azure.sh
-terraform/azure/
-terraform/hetzner/
-rotateregs.sh
-json_orari/

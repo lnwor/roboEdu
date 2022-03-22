@@ -1,5 +1,6 @@
 #!/bin/sh
 
+
 retrieve_ip() {
 	jq -r ".resources[] | select(.name == \"myVps\") | .instances[].attributes.ipv4_address" $TFSTATE
 }
@@ -12,6 +13,11 @@ make_inventory() {
 logd() {
 	TIMESTAMP=$(date -Iseconds)
 	echo $TIMESTAMP - $@
+}
+
+die() {
+	logd FATAL ERROR - $@
+	exit
 }
 
 wait_machines() {
@@ -92,13 +98,22 @@ record_stop() {
 
 wait_and_record() {
 	#parse string
-	counter=$(echo $1 | sed 's/_(.*)_/\1/'); shift
-	start=$(echo $1 | sed 's/_(.*)_/\1/'); shift
-	end=$(echo $1 | sed 's/_(.*)_/\1/'); shift
-	teams=$(echo $1 | sed 's/_(.*)_/\1/'); shift
-	id=$(echo $1 | sed 's/_(.*)_/\1/' | tr '_' '-'); shift
-	note=$(echo $1 | sed 's/_(.*)_/\1/'); shift
-	nome=$(echo $@ | sed 's/_(.*)_/\1/'); shift
+	counter=$(echo $1 | sed 's/_\(.*\)_/\1/'); shift
+	start=$(echo $1 | sed 's/_\(.*\)_/\1/'); shift
+	end=$(echo $1 | sed 's/_\(.*\)_/\1/'); shift
+	teams=$(echo $1 | sed 's/_\(.*\)_/\1/'); shift
+	id=$(echo $1 | sed 's/_\(.*\)_/\1/' | tr '_' '-'); shift
+	note=$(echo $1 | sed 's/_\(.*\)_/\1/'); shift
+	nome=$(echo $@ | sed 's/_\(.*\)_/\1/'); shift
+	
+	if test -z $counter \
+		|| test -z $start \
+		|| test -z $end \
+		|| test -z $teams \
+		|| test -z $id \
+		|| test -z $nome; then
+			die "queste variabili non possono essere vuote: \$counter \$end \$teams \$id \$nome: $counter $end $teams $id $nome"
+	fi
 
 	if test -n "$FILTER_CORSO" && ! (echo "$FILTER_CORSO_STRING" | grep $id > /dev/null); then
 		logd skipped corso $id - corso not in $FILTER_CORSO_STRING
@@ -248,19 +263,18 @@ test -n "$DESTROY" && destroy_all
 oggi=$(date '+%F')
 counter=0
 
+PIDFILE="$ROOT/logs_and_pid/$NOME_CORSO-$ANNO-$TIPO_CORSO-$counter.pid"
 
 # manual recording
 test -n "$MANUAL" && manual $MANUAL_STRING
 
-echo $$ > $ROOT/logs_and_pid/$NOME_CORSO-$ANNO-$TIPO.pid
+echo $$ > $ROOT/logs_and_pid/$NOME_CORSO-$ANNO-$TIPO_CORSO.pid
 
 # no process substitution in P0SIX sh
 tmpdir=$(mktemp -d)
 exec 3> $tmpdir/fd3
 
-curl -s "https://corsi.unibo.it/$TIPO/$NOME_CORSO/orario-lezioni/@@orario_reale_json?anno=$ANNO&curricula=$CURRICULA&start=$oggi&end=$oggi" | jq -r '.[] | "_" + .start + "_ _" + .end + "_ _" + .teams + "_ _" + .cod_modulo + "_ _" + .note + "_ _" + .title + "_"' > $tmpdir/fd3
-
-PIDFILE="$ROOT/logs_and_pid/$NOME_CORSO-$ANNO-$TIPO-$counter.pid"
+curl -s "https://corsi.unibo.it/$TIPO_CORSO/$NOME_CORSO/orario-lezioni/@@orario_reale_json?anno=$ANNO&curricula=$CURRICULA&start=$oggi&end=$oggi" | jq -r '.[] | "_" + .start + "_ _" + .end + "_ _" + .teams + "_ _" + .cod_modulo + "_ _" + .note + "_ _" + .title + "_"' > $tmpdir/fd3
 
 while read line; do
 	ID=$(echo $line | cut -d' ' -f4)
@@ -283,4 +297,4 @@ while test $counter -gt 0; do
 	set -e
 	counter=$(($counter - 1))
 done
-rm $ROOT/logs_and_pid/$NOME_CORSO-$ANNO-$TIPO.pid
+rm $ROOT/logs_and_pid/$NOME_CORSO-$ANNO-$TIPO_CORSO.pid
