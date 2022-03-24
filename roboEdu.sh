@@ -73,7 +73,7 @@ record_start() {
 	set -e
 	
     # create server with terraform
-	cd ./terraform
+	cd $ROOT/terraform
 	terraform init
 	terraform apply -var="anno=$ANNO" -var="corso=$NOME_CORSO" -var="id=$id" -var="counter=$counter" -state $TFSTATE -auto-approve
 	cd $ROOT
@@ -94,7 +94,7 @@ record_stop() {
 	logd Lezione finita, inizio a scaricarla
 	scp -i $PRIV_KEY -o StrictHostKeyChecking=no root@`retrieve_ip`:/home/yolo/reg.mkv "$ROOT/regs/$NOME_CORSO-$ANNO-${id}_$(date '+%y%m%d')_$counter.mkv"
 	logd Lezione scaricata 
-	cd terraform
+	cd $ROOT/terraform
 	terraform destroy -var="anno=$ANNO" -var="corso=$NOME_CORSO" -var="id=$id" -var="counter=$counter" -state $TFSTATE -auto-approve
 	cd $ROOT
 }
@@ -177,7 +177,7 @@ destroy_all() {
 			id=$line
 			# destroy terraform stuff
 			TFSTATE="${ROOT}/terraform/states/$NOME_CORSO-$ANNO-$id.tfstate"
-			cd terraform
+			cd $ROOT/terraform
 			terraform destroy -var="anno=$ANNO" -var="corso=$NOME_CORSO" -var="id=$id" -var="counter=$counter" -state $TFSTATE -auto-approve
 			cd $ROOT
 			# remove files
