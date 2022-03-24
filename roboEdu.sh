@@ -1,5 +1,8 @@
 #!/bin/sh
 
+get_pidfile(){
+    echo $ROOT/logs_and_pid/$NOME_CORSO-$ANNO-$TIPO_CORSO-$counter.pid
+}
 
 retrieve_ip() {
 	jq -r ".resources[] | select(.name == \"myVps\") | .instances[].attributes.ipv4_address" $TFSTATE
@@ -106,12 +109,12 @@ wait_and_record() {
 	note=$(echo $1 | sed 's/_\(.*\)_/\1/'); shift
 	nome=$(echo $@ | sed 's/_\(.*\)_/\1/'); shift
 	
-	if test -z $counter \
-		|| test -z $start \
-		|| test -z $end \
-		|| test -z $teams \
-		|| test -z $id \
-		|| test -z $nome; then
+	if test -z "$counter" \
+		|| test -z "$start" \
+		|| test -z "$end" \
+		|| test -z "$teams" \
+		|| test -z "$id" \
+		|| test -z "$nome"; then
 			die "queste variabili non possono essere vuote: \$counter \$end \$teams \$id \$nome: $counter $end $teams $id $nome"
 	fi
 
@@ -202,26 +205,27 @@ show_help() {
 }
 
 manual(){
-	# M substitutes counter to specify that it's a manual recording
-	counter="M"
-	timeStart=$1 
-	timeEnd=$2
-	url=$3
-	ID=$4
-	echo $counter - $timeStart $timeEnd $url $ID $NOME_CORSO $ANNO
-	wait_and_record $counter ${oggi}T$1 ${oggi}T$2 $3 $4 __ $NOME_CORSO $ANNO > $ROOT/logs_and_pid/$NOME_CORSO-${ANNO}_${ID}_$(date '+%y%m%d')_$counter.log 2>&1 &
-	echo $! > $PIDFILE
-	set +e
-	wait $(cat $PIDFILE)
-	set -e
-	echo $NOME_CORSO-$ANNO-$counter ha finito
-	test -z VERBOSE && rm $ROOT/logs_and_pid/${NOME_CORSO}-${ANNO}_*_$(date '+%y%m%d')_${counter}.log
-	rm $PIDFILE
-	set +e
-	rm -f $ROOT/screencaps/$NOME_CORSO-$ANNO-*-$counter.png
-	set -e
-	rm $PIDFILE
-	exit
+    # M substitutes counter to specify that it's a manual recording
+    counter="M"
+    timeStart=$1 
+    timeEnd=$2
+    url=$3
+    ID=$4
+    PIDFILE=`get_pidfile`
+    echo $counter - $timeStart $timeEnd $url $ID $NOME_CORSO $ANNO
+    wait_and_record $counter ${oggi}T$1 ${oggi}T$2 $3 $4 __ $NOME_CORSO $ANNO > $ROOT/logs_and_pid/$NOME_CORSO-${ANNO}_${ID}_$(date '+%y%m%d')_$counter.log 2>&1 &
+    echo $! > $PIDFILE
+    set +e
+    wait $(cat $PIDFILE)
+    set -e
+    echo $NOME_CORSO-$ANNO-$counter ha finito
+    test -z VERBOSE && rm $ROOT/logs_and_pid/${NOME_CORSO}-${ANNO}_*_$(date '+%y%m%d')_${counter}.log
+    rm $PIDFILE
+    set +e
+    rm -f $ROOT/screencaps/$NOME_CORSO-$ANNO-*-$counter.png
+    set -e
+    rm $PIDFILE
+    exit
 }
 
 ############### 
@@ -263,27 +267,19 @@ test -n "$DESTROY" && destroy_all
 oggi=$(date '+%F')
 counter=0
 
-PIDFILE="$ROOT/logs_and_pid/$NOME_CORSO-$ANNO-$TIPO_CORSO-$counter.pid"
-
 # manual recording
 test -n "$MANUAL" && manual $MANUAL_STRING
 
 echo $$ > $ROOT/logs_and_pid/$NOME_CORSO-$ANNO-$TIPO_CORSO.pid
 
-# no process substitution in P0SIX sh
-tmpdir=$(mktemp -d)
-exec 3> $tmpdir/fd3
-
-curl -s "https://corsi.unibo.it/$TIPO_CORSO/$NOME_CORSO/orario-lezioni/@@orario_reale_json?anno=$ANNO&curricula=$CURRICULA&start=$oggi&end=$oggi" | jq -r '.[] | "_" + .start + "_ _" + .end + "_ _" + .teams + "_ _" + .cod_modulo + "_ _" + .note + "_ _" + .title + "_"' > $tmpdir/fd3
-
-while read line; do
-	ID=$(echo $line | cut -d' ' -f4)
-	counter=$(($counter + 1))
-	wait_and_record $counter $line > $ROOT/logs_and_pid/$NOME_CORSO-${ANNO}_${ID}_$(date '+%y%m%d')_$counter.log 2>&1 &
-	echo $! > $PIDFILE
-done < $tmpdir/fd3
-
-rm -r $tmpdir
+curl -s "https://corsi.unibo.it/$TIPO_CORSO/$NOME_CORSO/orario-lezioni/@@orario_reale_json?anno=$ANNO&curricula=$CURRICULA&start=$oggi&end=$oggi" | jq -r '.[] | "_" + .start + "_ _" + .end + "_ _" + .teams + "_ _" + .cod_modulo + "_ _" + .note + "_ _" + .title + "_"' |
+    while read line; do
+        ID=$(echo $line | cut -d' ' -f4)
+        counter=$(($counter + 1))
+        PIDFILE=`get_pidfile`
+        wait_and_record $counter $line > $ROOT/logs_and_pid/$NOME_CORSO-${ANNO}_${ID}_$(date '+%y%m%d')_$counter.log 2>&1 &
+        echo $! > $PIDFILE
+    done
 
 while test $counter -gt 0; do
 	set +e
